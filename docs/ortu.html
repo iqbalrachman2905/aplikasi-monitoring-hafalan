@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Orang Tua</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Scheherazade+New:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/animations.css">
+<link rel="stylesheet" href="css/dashboard-ortu.css">
+</head>
+<body>
+  <div class="container">
+
+    <header class="hero-ortu card animate-in">
+      <svg class="icon icon-lg icon-gold"><use href="assets/icons.svg#icon-lantern"/></svg>
+      <h1>Rapor <span id="namaAnak">Ananda</span></h1>
+      <div class="ringkasan-row" id="ringkasanRow"></div>
+    </header>
+
+    <section class="card animate-in animate-in-delay-1" style="text-align:center">
+      <p class="muted-text">Uji hafalan anakmu kapan saja, tanpa perlu mengetik surah atau ayat.</p>
+      <button class="btn btn-primary btn-block" id="btnTesAcak" style="margin-top:12px">
+        <svg class="icon"><use href="assets/icons.svg#icon-tasbih"/></svg>
+        Tes Anak Saya
+      </button>
+      <button class="btn btn-gold btn-block" id="btnSemangat" style="margin-top:8px">
+        <svg class="icon"><use href="assets/icons.svg#icon-heart"/></svg>
+        Kirim Semangat
+      </button>
+      <p id="semangatTerkirim" class="muted-text" style="display:none;margin-top:8px">Terkirim! 🎉</p>
+    </section>
+
+    <div id="tesArea"></div>
+
+    <section class="animate-in animate-in-delay-2">
+      <h2 class="section-title">
+        <svg class="icon icon-primary"><use href="assets/icons.svg#icon-quran"/></svg>
+        Daftar Hafalan
+      </h2>
+      <div id="daftarHafalan"><div class="skeleton" style="height:60px;margin-bottom:8px"></div></div>
+    </section>
+
+  </div>
+
+  <script type="module">
+    import { requireSession, getOrtuDashboard, getTesAcak, recordTesOrtu, kirimSemangat, clearSession } from './js/api.js';
+
+    const session = requireSession('ortu');
+    loadDashboard();
+
+    async function loadDashboard() {
+      const data = await getOrtuDashboard(session.token);
+      if (!data.success) {
+        clearSession();
+        window.location.href = 'index.html';
+        return;
+      }
+      document.getElementById('namaAnak').textContent = data.namaAnak;
+      renderRingkasan(data.ringkasan);
+      renderDaftar(data.daftar);
+    }
+
+    function renderRingkasan(r) {
+      const row = document.getElementById('ringkasanRow');
+      row.innerHTML = `
+        <div class="status-badge status-hijau">Hijau ${r.hijau}</div>
+        <div class="status-badge status-kuning">Kuning ${r.kuning}</div>
+        <div class="status-badge status-merah">Merah ${r.merah}</div>`;
+    }
+
+    function renderDaftar(daftar) {
+      const container = document.getElementById('daftarHafalan');
+      if (!daftar || daftar.length === 0) {
+        container.innerHTML = '<p class="muted-text">Belum ada data hafalan.</p>';
+        return;
+      }
+      const kelasStatus = { Hijau: 'status-hijau', Kuning: 'status-kuning', Merah: 'status-merah' };
+      container.innerHTML = daftar.map((d) => `
+        <div class="card hafalan-item">
+          <span>${d.surah} : ${d.ayatMulai}-${d.ayatAkhir}</span>
+          <span class="status-badge ${kelasStatus[d.status] || 'status-hijau'}">${d.status}</span>
+        </div>`).join('');
+    }
+
+    // ===== Tes Acak =====
+    const tesArea = document.getElementById('tesArea');
+    document.getElementById('btnTesAcak').addEventListener('click', async () => {
+      tesArea.innerHTML = '<div class="card skeleton" style="height:100px;margin:16px 0"></div>';
+      const card = await getTesAcak(session.token);
+      if (!card.success) {
+        tesArea.innerHTML = `<div class="card" style="margin:16px 0"><p class="muted-text">${card.message}</p></div>`;
+        return;
+      }
+      renderTesCard(card);
+    });
+
+    function renderTesCard(card) {
+      const ayatList = card.ayat || [];
+      const teksGabungan = ayatList.map((a) => a.teksArab).filter(Boolean).join(' ');
+      const audioUrl = ayatList.find((a) => a.audioUrl)?.audioUrl;
+
+      tesArea.innerHTML = `
+        <div class="card animate-in" style="margin:16px 0">
+          <p class="muted-text">Simak bacaan ${card.surah} : ${card.ayatMulai}-${card.ayatAkhir}</p>
+          ${audioUrl ? `<audio controls style="width:100%;margin:8px 0" src="${audioUrl}"></audio>` : ''}
+          <div class="font-arabic" id="teksTes" style="${teksGabungan ? '' : 'display:none'}">${teksGabungan}</div>
+          ${!teksGabungan ? '<p class="muted-text" style="font-size:var(--fs-xs)">Teks sedang tidak bisa dimuat — gunakan mushaf untuk mencocokkan.</p>' : ''}
+          <p class="muted-text" style="margin-top:12px">Bagaimana bacaan anakmu?</p>
+          <div class="eval-buttons">
+            <button class="btn eval-btn eval-lancar" data-kualitas="Lancar">Lancar</button>
+            <button class="btn eval-btn eval-tersendat" data-kualitas="Tersendat">Tersendat</button>
+            <button class="btn eval-btn eval-lupa" data-kualitas="Lupa">Lupa</button>
+          </div>
+        </div>`;
+
+      tesArea.querySelectorAll('.eval-btn').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          tesArea.querySelectorAll('.eval-btn').forEach((b) => (b.disabled = true));
+          const result = await recordTesOrtu(session.token, card.idMaster, e.currentTarget.dataset.kualitas);
+          if (result.success) {
+            tesArea.innerHTML = `<div class="card animate-pop" style="margin:16px 0;text-align:center">
+              <p>Tersimpan! Status hafalan sekarang: <strong>${result.statusBaru}</strong></p>
+            </div>`;
+            loadDashboard();
+          } else {
+            alert(result.message || 'Gagal menyimpan');
+          }
+        });
+      });
+    }
+
+    // ===== Kirim Semangat =====
+    document.getElementById('btnSemangat').addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      const result = await kirimSemangat(session.token);
+      if (result.success) {
+        document.getElementById('semangatTerkirim').style.display = 'block';
+        setTimeout(() => { e.currentTarget.disabled = false; document.getElementById('semangatTerkirim').style.display = 'none'; }, 2500);
+      }
+    });
+  </script>
+</body>
+</html>

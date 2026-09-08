@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Ustaz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/animations.css">
+<link rel="stylesheet" href="css/dashboard-ustaz.css">
+</head>
+<body>
+  <div class="container">
+
+    <header class="hero-ustaz card animate-in">
+      <svg class="icon icon-lg icon-primary"><use href="assets/icons.svg#icon-mosque"/></svg>
+      <h1>Dashboard Ustaz</h1>
+      <p class="muted-text">Rekap kelompok binaanmu</p>
+    </header>
+
+    <section class="animate-in animate-in-delay-1">
+      <h2 class="section-title">
+        <svg class="icon icon-primary"><use href="assets/icons.svg#icon-trophy"/></svg>
+        Rekap Kelompok
+      </h2>
+      <div id="rekapKelompok"><div class="skeleton" style="height:60px;margin-bottom:8px"></div></div>
+    </section>
+
+    <section class="card animate-in animate-in-delay-2">
+      <h2 class="section-title" style="margin-top:0">
+        <svg class="icon icon-primary"><use href="assets/icons.svg#icon-quran"/></svg>
+        Input Setoran Baru
+      </h2>
+      <form id="formSetoran">
+        <div class="field-group">
+          <label class="field-label">Santri</label>
+          <select class="input" id="selectSantri" required></select>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Nomor Surah</label>
+            <input class="input" type="number" id="inputSurah" min="1" max="114" required>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Nilai (0-100)</label>
+            <input class="input" type="number" id="inputNilai" min="0" max="100" required>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Ayat Mulai</label>
+            <input class="input" type="number" id="inputAyatMulai" min="1" required>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Ayat Akhir</label>
+            <input class="input" type="number" id="inputAyatAkhir" min="1" required>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Catatan (opsional)</label>
+          <input class="input" type="text" id="inputCatatan">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="btnSimpanSetoran">Simpan Setoran</button>
+        <p class="muted-text" id="setoranStatus" style="display:none;margin-top:8px"></p>
+      </form>
+    </section>
+
+    <section class="card animate-in animate-in-delay-3">
+      <h2 class="section-title" style="margin-top:0">
+        <svg class="icon icon-gold"><use href="assets/icons.svg#icon-heart"/></svg>
+        Broadcast Motivasi
+      </h2>
+      <textarea class="input" id="inputBroadcast" rows="3" placeholder="Tulis pesan semangat untuk seluruh santri binaanmu..."></textarea>
+      <button class="btn btn-gold btn-block" id="btnBroadcast" style="margin-top:8px">Kirim ke Semua Santri</button>
+      <p class="muted-text" id="broadcastStatus" style="display:none;margin-top:8px"></p>
+    </section>
+
+  </div>
+
+  <script type="module">
+    import { requireSession, getUstazDashboard, inputSetoran, broadcastMotivasi, clearSession } from './js/api.js';
+
+    const session = requireSession('ustaz');
+    let daftarSantriTerkini = [];
+
+    loadDashboard();
+
+    async function loadDashboard() {
+      const data = await getUstazDashboard(session.token);
+      if (!data.success) {
+        clearSession();
+        window.location.href = 'index.html';
+        return;
+      }
+      daftarSantriTerkini = data.daftarSantri;
+      renderRekap(data.daftarSantri);
+      renderSelectSantri(data.daftarSantri);
+    }
+
+    function renderRekap(daftar) {
+      const container = document.getElementById('rekapKelompok');
+      if (!daftar || daftar.length === 0) {
+        container.innerHTML = '<p class="muted-text">Belum ada santri binaan.</p>';
+        return;
+      }
+      container.innerHTML = daftar.map((s) => `
+        <div class="card santri-item">
+          <div>
+            <span class="santri-nama">${s.nama}</span>
+            ${s.flagged ? '<span class="flag-dot" title="Perlu perhatian"></span>' : ''}
+          </div>
+          <div class="ringkasan-mini">
+            <span class="status-badge status-hijau">${s.ringkasan.hijau}</span>
+            <span class="status-badge status-kuning">${s.ringkasan.kuning}</span>
+            <span class="status-badge status-merah">${s.ringkasan.merah}</span>
+          </div>
+        </div>`).join('');
+    }
+
+    function renderSelectSantri(daftar) {
+      const select = document.getElementById('selectSantri');
+      select.innerHTML = daftar.map((s) => `<option value="${s.idSantri}">${s.nama}</option>`).join('');
+    }
+
+    document.getElementById('formSetoran').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btnSimpanSetoran');
+      const statusEl = document.getElementById('setoranStatus');
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+
+      const result = await inputSetoran(
+        session.token,
+        document.getElementById('selectSantri').value,
+        Number(document.getElementById('inputSurah').value),
+        Number(document.getElementById('inputAyatMulai').value),
+        Number(document.getElementById('inputAyatAkhir').value),
+        Number(document.getElementById('inputNilai').value),
+        document.getElementById('inputCatatan').value
+      );
+
+      statusEl.style.display = 'block';
+      statusEl.textContent = result.success ? 'Setoran tersimpan ✅' : (result.message || 'Gagal menyimpan');
+      if (result.success) {
+        e.target.reset();
+        loadDashboard();
+      }
+      btn.disabled = false;
+      btn.textContent = 'Simpan Setoran';
+    });
+
+    document.getElementById('btnBroadcast').addEventListener('click', async () => {
+      const pesan = document.getElementById('inputBroadcast').value.trim();
+      const statusEl = document.getElementById('broadcastStatus');
+      if (!pesan) return;
+
+      const btn = document.getElementById('btnBroadcast');
+      btn.disabled = true;
+      const result = await broadcastMotivasi(session.token, pesan);
+      statusEl.style.display = 'block';
+      statusEl.textContent = result.success ? `Terkirim ke ${result.jumlahTerkirim} santri 🎉` : (result.message || 'Gagal mengirim');
+      if (result.success) document.getElementById('inputBroadcast').value = '';
+      btn.disabled = false;
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+/* Semua animasi hanya pakai transform/opacity supaya ringan di HP */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-in { animation: fadeInUp var(--transition-base) ease both; }
+.animate-in-delay-1 { animation-delay: 80ms; }
+.animate-in-delay-2 { animation-delay: 160ms; }
+.animate-in-delay-3 { animation-delay: 240ms; }
+
+/* Streak flame — nyala pelan-pelan, dipakai di indikator streak Santri */
+@keyframes flamePulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 var(--color-flame-glow)); }
+  50%      { transform: scale(1.12); filter: drop-shadow(0 0 6px var(--color-flame-glow)); }
+}
+.animate-flame { animation: flamePulse 1.6s ease-in-out infinite; color: var(--color-flame); }
+
+/* Badge unlock — muncul dengan efek "pop" */
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.5) rotate(-8deg); }
+  70%  { opacity: 1; transform: scale(1.08) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+.animate-pop { animation: popIn var(--transition-bounce) both; }
+
+/* Skeleton loading — dipakai saat menunggu response google.script.run / fetch */
+@keyframes shimmer {
+  0%   { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--color-border) 25%, #f3f1e8 37%, var(--color-border) 63%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* Confetti ringan untuk perayaan pencapaian — beberapa <span> ditaruh via JS */
+@keyframes confettiFall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(120px) rotate(360deg); opacity: 0; }
+}
+.confetti-piece {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  animation: confettiFall 900ms ease-out forwards;
+}

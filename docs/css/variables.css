@@ -1,0 +1,67 @@
+:root {
+  /* ===== Warna Primer — Islamic Emerald ===== */
+  --color-primary: #0F9D6E;
+  --color-primary-dark: #086B4A;
+  --color-primary-light: #6FE0B8;
+  --color-primary-bg: #E7F8F1;
+
+  /* ===== Warna Aksen — Gold (reward / pencapaian) ===== */
+  --color-gold: #E8B44A;
+  --color-gold-dark: #C6922B;
+  --color-gold-bg: #FDF3E0;
+
+  /* ===== Warna Netral ===== */
+  --color-bg: #FBF9F4;
+  --color-surface: #FFFFFF;
+  --color-text: #1F2A24;
+  --color-text-muted: #6B776F;
+  --color-border: #E7E2D6;
+
+  /* ===== Warna Status (Traffic Light) — sengaja beda dari primary ===== */
+  --color-status-hijau: #22C55E;
+  --color-status-hijau-bg: #DCFCE7;
+  --color-status-kuning: #F5B301;
+  --color-status-kuning-bg: #FEF3C7;
+  --color-status-merah: #EF4444;
+  --color-status-merah-bg: #FEE2E2;
+
+  /* ===== Warna Semangat (streak / gamifikasi) ===== */
+  --color-flame: #FF7A45;
+  --color-flame-glow: #FFD6A5;
+
+  /* ===== Tipografi ===== */
+  --font-ui: 'Poppins', 'Segoe UI', sans-serif;
+  --font-arabic: 'Scheherazade New', 'Amiri', serif;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.5rem;
+  --fs-2xl: 2rem;
+  --fs-arabic: 2rem;
+
+  /* ===== Spacing Scale ===== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+
+  /* ===== Radius & Shadow ===== */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+
+  --shadow-sm: 0 1px 3px rgba(15, 157, 110, 0.08);
+  --shadow-md: 0 4px 14px rgba(15, 157, 110, 0.12);
+  --shadow-gold: 0 4px 14px rgba(232, 180, 74, 0.25);
+
+  /* ===== Transisi ===== */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-bounce: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}

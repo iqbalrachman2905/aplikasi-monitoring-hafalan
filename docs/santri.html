@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Santri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Scheherazade+New:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/animations.css">
+<link rel="stylesheet" href="css/dashboard-santri.css">
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header: sapaan + streak -->
+    <header class="hero-santri card animate-in">
+      <div class="hero-top">
+        <div>
+          <p class="hero-greeting">Assalamu'alaikum,</p>
+          <h1 id="namaUser">Santri</h1>
+        </div>
+        <div class="streak-chip">
+          <svg class="icon animate-flame"><use href="assets/icons.svg#icon-flame"/></svg>
+          <span id="streakCount">0</span>
+        </div>
+      </div>
+
+      <div class="level-progress">
+        <div class="level-label">
+          <span id="levelName">Pejuang Sabaq</span>
+          <span id="xpTotal">0 XP</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill" style="width:0%"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Misi Harian -->
+    <section class="animate-in animate-in-delay-1">
+      <h2 class="section-title">
+        <svg class="icon icon-primary"><use href="assets/icons.svg#icon-quran"/></svg>
+        Misi Hari Ini
+      </h2>
+      <div id="misiContainer"><div class="skeleton" style="height:80px;margin-bottom:12px"></div></div>
+    </section>
+
+    <!-- Kuis Flashcard -->
+    <section class="animate-in animate-in-delay-2">
+      <h2 class="section-title">
+        <svg class="icon icon-gold"><use href="assets/icons.svg#icon-star8"/></svg>
+        Uji Hafalanmu
+      </h2>
+      <div class="card" id="flashcardCard">
+        <p class="muted-text">Yuk uji hafalanmu sebelum disetor ke Ustaz!</p>
+        <button class="btn btn-gold btn-block" id="btnMulaiKuis" style="margin-top:12px">
+          <svg class="icon"><use href="assets/icons.svg#icon-play"/></svg>
+          Mulai Kuis
+        </button>
+      </div>
+    </section>
+
+    <!-- Badge -->
+    <section class="animate-in animate-in-delay-3">
+      <h2 class="section-title">
+        <svg class="icon icon-gold"><use href="assets/icons.svg#icon-trophy"/></svg>
+        Pencapaianmu
+      </h2>
+      <div class="badge-row" id="badgeRow"><p class="muted-text">Belum ada badge — terus semangat murojaah!</p></div>
+    </section>
+
+  </div>
+
+  <script type="module">
+    import { requireSession, getSantriDashboard, confirmMisi, getFlashcard, clearSession } from './js/api.js';
+
+    const session = requireSession('santri');
+    document.getElementById('namaUser').textContent = session.nama || 'Santri';
+
+    loadDashboard();
+
+    async function loadDashboard() {
+      const data = await getSantriDashboard(session.token);
+      if (!data.success) {
+        clearSession();
+        window.location.href = 'index.html';
+        return;
+      }
+      renderGamifikasi(data.gamifikasi);
+      renderMisi(data.misi);
+      renderBadges(data.badges);
+    }
+
+    function renderGamifikasi(g) {
+      document.getElementById('streakCount').textContent = g.streakSaatIni;
+      document.getElementById('levelName').textContent = g.level;
+      document.getElementById('xpTotal').textContent = g.xpTotal + ' XP';
+      document.getElementById('progressFill').style.width = g.persenProgress + '%';
+    }
+
+    function renderMisi(misi) {
+      const container = document.getElementById('misiContainer');
+      container.innerHTML = '';
+      const kelompok = [
+        { key: 'sabaq', label: 'Sabaq — Hafalan Baru', badgeClass: 'status-hijau' },
+        { key: 'sabqi', label: 'Sabqi — Perkuat Hafalan Baru', badgeClass: 'status-kuning' },
+        { key: 'manzil', label: 'Manzil — Jaga Hafalan Lama', badgeClass: 'status-merah' },
+      ];
+
+      let ada = false;
+      kelompok.forEach(({ key, label, badgeClass }) => {
+        const list = misi[key];
+        if (!list || list.length === 0) return;
+        ada = true;
+        const groupEl = document.createElement('div');
+        groupEl.className = 'card misi-group';
+        groupEl.innerHTML = `<span class="status-badge ${badgeClass}">${label}</span>`;
+        list.forEach((item) => {
+          const row = document.createElement('div');
+          row.className = 'misi-item';
+          row.innerHTML = `
+            <span>${item.surah} : ${item.ayatMulai}-${item.ayatAkhir}</span>
+            <button class="btn btn-primary btn-selesai">
+              <svg class="icon"><use href="assets/icons.svg#icon-check"/></svg>
+            </button>`;
+          row.querySelector('.btn-selesai').addEventListener('click', (e) =>
+            handleSelesai(key, item.idMaster, row, e.currentTarget)
+          );
+          groupEl.appendChild(row);
+        });
+        container.appendChild(groupEl);
+      });
+
+      if (!ada) {
+        container.innerHTML = '<p class="muted-text">Semua misi hari ini sudah selesai. Mantap! 🎉</p>';
+      }
+    }
+
+    async function handleSelesai(jenisMisi, idMaster, rowEl, btnEl) {
+      btnEl.disabled = true;
+      const result = await confirmMisi(session.token, jenisMisi, idMaster);
+      if (result.success) {
+        rowEl.style.opacity = '0.5';
+        rowEl.innerHTML = '<span>✅ Selesai (+' + result.xpGained + ' XP)</span>';
+        document.getElementById('streakCount').textContent = result.streakSaatIni;
+        document.getElementById('levelName').textContent = result.level;
+        document.getElementById('xpTotal').textContent = result.xpTotal + ' XP';
+        spawnConfetti();
+      } else {
+        btnEl.disabled = false;
+        alert(result.message || 'Gagal menyimpan, coba lagi');
+      }
+    }
+
+    function renderBadges(badges) {
+      if (!badges || badges.length === 0) return;
+      const row = document.getElementById('badgeRow');
+      row.innerHTML = '';
+      badges.forEach((b) => {
+        const el = document.createElement('div');
+        el.className = 'badge-pill animate-pop';
+        el.innerHTML = `<svg class="icon icon-gold"><use href="assets/icons.svg#icon-trophy"/></svg><span>${b.nama}</span>`;
+        row.appendChild(el);
+      });
+    }
+
+    // Flashcard mandiri
+    const flashcardCard = document.getElementById('flashcardCard');
+    document.getElementById('btnMulaiKuis').addEventListener('click', async () => {
+      flashcardCard.innerHTML = '<div class="skeleton" style="height:60px"></div>';
+      const card = await getFlashcard(session.token);
+      if (!card.success) {
+        flashcardCard.innerHTML = `<p class="muted-text">${card.message}</p>`;
+        return;
+      }
+      renderFlashcard(card);
+    });
+
+    function renderFlashcard(card) {
+      const ayatList = card.ayat || [];
+      const adaTeks = ayatList.some((a) => a.teksArab);
+
+      if (!adaTeks) {
+        // Provider API sedang tidak bisa dihubungi — fallback ke referensi saja,
+        // bukan bikin seluruh kuis gagal (Section 17: External API Resilience).
+        flashcardCard.innerHTML = `
+          <p class="muted-text">Teks ayat sedang tidak bisa dimuat. Coba baca dari mushaf untuk:</p>
+          <h3 style="margin:8px 0">${card.surah} : ${card.ayatMulai}-${card.ayatAkhir}</h3>
+          <button class="btn btn-primary btn-block" id="btnKuisLagi" style="margin-top:12px">Coba Lagi</button>`;
+        document.getElementById('btnKuisLagi').addEventListener('click', () => document.getElementById('btnMulaiKuis').click());
+        return;
+      }
+
+      const petunjuk = ayatList.slice(0, -1);
+      const jawaban = ayatList[ayatList.length - 1];
+
+      flashcardCard.innerHTML = `
+        <p class="muted-text">Lanjutkan ayat berikut:</p>
+        <div class="font-arabic" id="petunjukArab">${petunjuk.map((a) => a.teksArab).join(' ') || '(langsung ke ayat yang ditanya)'}</div>
+        <div class="font-arabic" id="jawabanArab" style="filter: blur(6px); user-select:none; margin-top:8px">${jawaban.teksArab}</div>
+        <button class="btn btn-gold btn-block" id="btnBukaJawaban" style="margin-top:16px">
+          <svg class="icon"><use href="assets/icons.svg#icon-check"/></svg>
+          Lihat Jawaban
+        </button>
+        <button class="btn btn-primary btn-block" id="btnKuisLagi" style="margin-top:8px">Ayat Lain</button>
+      `;
+      document.getElementById('btnBukaJawaban').addEventListener('click', (e) => {
+        document.getElementById('jawabanArab').style.filter = 'none';
+        e.currentTarget.disabled = true;
+      });
+      document.getElementById('btnKuisLagi').addEventListener('click', () => document.getElementById('btnMulaiKuis').click());
+    }
+
+    // Confetti ringan saat konfirmasi misi
+    function spawnConfetti() {
+      const colors = ['#0F9D6E', '#E8B44A', '#22C55E', '#6FE0B8'];
+      for (let i = 0; i < 12; i++) {
+        const piece = document.createElement('span');
+        piece.className = 'confetti-piece';
+        piece.style.left = (40 + Math.random() * 20) + '%';
+        piece.style.top = '20%';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        document.body.appendChild(piece);
+        setTimeout(() => piece.remove(), 900);
+      }
+    }
+  </script>
+</body>
+</html>

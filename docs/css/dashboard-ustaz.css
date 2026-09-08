@@ -1,0 +1,26 @@
+.hero-ustaz { text-align: center; }
+.hero-ustaz h1 { font-size: var(--fs-xl); margin: var(--space-2) 0 var(--space-1); }
+
+.santri-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+  padding: var(--space-4);
+}
+.santri-nama { font-weight: 600; }
+.flag-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-status-merah);
+  margin-left: var(--space-2);
+}
+.ringkasan-mini { display: flex; gap: var(--space-1); }
+.ringkasan-mini .status-badge { padding: 2px var(--space-2); }
+
+.field-row { display: flex; gap: var(--space-3); }
+.field-row .field-group { flex: 1; }
+
+textarea.input { resize: vertical; font-family: var(--font-ui); }

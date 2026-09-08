@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hafalan Qur'an — Masuk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Scheherazade+New:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/animations.css">
+<style>
+  .login-hero {
+    background: linear-gradient(160deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6) var(--space-5);
+    color: #fff;
+    text-align: center;
+    margin-bottom: var(--space-5);
+    position: relative;
+    overflow: hidden;
+  }
+  .login-hero .icon-lg { color: var(--color-gold); margin-bottom: var(--space-3); }
+  .login-hero h1 { font-size: var(--fs-xl); margin-bottom: var(--space-1); }
+  .login-hero p { font-size: var(--fs-sm); opacity: 0.85; }
+  .login-hero::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 90% -10%, rgba(232,180,74,0.35), transparent 60%);
+  }
+  .field-group { margin-bottom: var(--space-4); }
+  .field-label { display: block; font-size: var(--fs-sm); font-weight: 600; margin-bottom: var(--space-2); }
+  .error-text { color: var(--color-status-merah); font-size: var(--fs-sm); margin-top: var(--space-2); display: none; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="login-hero animate-in">
+      <svg class="icon icon-lg"><use href="assets/icons.svg#icon-mosque"/></svg>
+      <h1>Hafalan Qur'an</h1>
+      <p>Jaga hafalanmu, jaga hatimu ✨</p>
+    </div>
+
+    <form id="loginForm" class="card animate-in animate-in-delay-1">
+      <div class="field-group">
+        <label class="field-label" for="username">Username</label>
+        <input class="input" type="text" id="username" required autocomplete="username">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="password">Password</label>
+        <input class="input" type="password" id="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
+        <svg class="icon"><use href="assets/icons.svg#icon-crescent"/></svg>
+        Masuk
+      </button>
+      <p class="error-text" id="errorText"></p>
+    </form>
+  </div>
+
+  <script type="module">
+    import { login, getSession } from './js/api.js';
+
+    // Kalau sudah login, langsung redirect sesuai role
+    const existing = getSession();
+    if (existing) redirectByRole(existing.role);
+
+    const form = document.getElementById('loginForm');
+    const errorText = document.getElementById('errorText');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorText.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Memeriksa...';
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        const result = await login(username, password);
+        if (result.success) {
+          redirectByRole(result.role);
+        } else {
+          showError(result.message || 'Username atau password salah');
+        }
+      } catch (err) {
+        showError('Tidak bisa terhubung ke server. Coba lagi.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<svg class="icon"><use href="assets/icons.svg#icon-crescent"/></svg> Masuk';
+      }
+    });
+
+    function showError(msg) {
+      errorText.textContent = msg;
+      errorText.style.display = 'block';
+    }
+
+    function redirectByRole(role) {
+      const pageByRole = { santri: 'santri.html', ortu: 'ortu.html', ustaz: 'ustaz.html' };
+      window.location.href = pageByRole[role] || 'index.html';
+    }
+  </script>
+</body>
+</html>
